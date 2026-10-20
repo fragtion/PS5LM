@@ -44,12 +44,13 @@ the console with `-b 1024 -ub 512` unless noted:
 | 64k context + vision mmproj | loads clean |
 | 128k context, text only (`-b 1024 -ub 512`) | loads clean (`n_ctx_slot = 131072`) |
 | 144k context, text only (`-b 512 -ub 256`) | loads clean (`n_ctx_slot = 147456`) |
+| 160k context, text only (`-b 512 -ub 256`) | loads clean (`n_ctx_slot = 163840`), generation verified at ~19.6 t/s |
 | 128k + vision | crash mid-load (hard fault, no allocation line) |
 | 144k / 192k text only at `-b 1024 -ub 512` | graceful OOM: `failed to allocate Vulkan0 buffer of size 341843972` |
 
-So the practical ceilings are **144k text-only** (with `-b 512 -ub 256`; 128k
-comes free at the wider batch) or **64k with images**; the model itself is
-trained to 262144. The narrow tier is gated to text-only - 96k+vision was
+So the practical ceilings are **160k text-only** (with `-b 512 -ub 256`; 144k
+and 128k come free at narrower-or-wider batches) or **64k with images**; the
+model itself is trained to 262144. The narrow tier is gated to text-only - 96k+vision was
 never booted, so vision plans stay on measured tiers. With the Settings row
 "Vision: Auto/On/Off" (the new `vision` key in `settings.json`) the planner
 picks these configs by itself now; to force an exact one, override the
