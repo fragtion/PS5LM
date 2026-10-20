@@ -88,9 +88,10 @@ int main(int argc, char ** argv) {
     assert(bvo.fits && bvo.ctx == 65536 && has_args(bvo, "-b", "1024") && bvo.vision);
     const ps5lm::Plan bvt = ps5lm::plan_model(bv, slim_budget, 131072, nullptr, "off");
     assert(bvt.fits && bvt.ctx == 131072 && !bvt.vision);
-    // Uncapped, the measured narrow tier (-b 512 -ub 256) buys 160k text-only, booted clean.
-    const ps5lm::Plan bx = ps5lm::plan_model(bv, slim_budget, 163840, nullptr, "off");
-    assert(bx.fits && bx.ctx == 163840 && has_args(bx, "-b", "512") && has_args(bx, "-ub", "256"));
+    // Uncapped, the measured narrow tier (-b 512 -ub 256) buys 176k text-only; 184k fails on the
+    // pinned host staging (Vulkan_Host ~109 MiB), so 176k is the top booted tier.
+    const ps5lm::Plan bx = ps5lm::plan_model(bv, slim_budget, 180224, nullptr, "off");
+    assert(bx.fits && bx.ctx == 180224 && has_args(bx, "-b", "512") && has_args(bx, "-ub", "256"));
 
     if (argc < 2) {
         std::puts("model_plan_test: ok (synthetic only)");

@@ -389,9 +389,13 @@ Plan plan_model(const ModelInfo & m, double budget_gib, uint32_t ctx_cap, const 
     const bool ternary = low_name.find("pq2_0") != std::string::npos || low_name.find("ptq1_0") != std::string::npos;
     if (ternary && m.vocab_size && m.n_ffn && m.n_embd) {
         static const uint32_t bu[][2] = { { 2048, 2048 }, { 2048, 1024 }, { 1024, 512 }, { 512, 256 } };
-        static const uint32_t ctxs_tern[] = { 163840, 147456, 131072, 98304, 65536, 32768, 16384, 8192 };
+        static const uint32_t ctxs_tern[] = { 180224, 163840, 147456, 131072, 98304, 65536, 32768, 16384, 8192 };
         const double vocab    = m.vocab_size;
-        const double per_ub   = 2.0 * (4.0 * m.n_ffn + 16.0 * m.n_embd);  // pinned host plus device copy
+        // Pinned host staging plus its device mirror and the dequant scratch
+        // across pipeline stages: four buffer sets per ubatch token. Calibrated
+        // against eight console boots: 128k@1024/512 pass, 144k@1024/512 fail,
+        // 176k@512/256 pass, 184k and 192k@512/256 fail (Vulkan_Host 109 MiB).
+        const double per_ub   = 4.0 * (4.0 * m.n_ffn + 16.0 * m.n_embd);
         for (uint32_t ctx : ctxs_tern) {
             if (ctx > ctx_cap) {
                 continue;
@@ -411,7 +415,7 @@ Plan plan_model(const ModelInfo & m, double budget_gib, uint32_t ctx_cap, const 
                         continue;  // f16 only where it is cheap
                     }
                     const double kv = kv_bytes_per_token(m, t) * ctx / kGiB;
-                    const double reserve = 0.7 + (want_img ? 0.5 : 0.0)
+                    const double reserve = 0.2 + (want_img ? 0.5 : 0.0)
                                          + vocab * 4.0 * b_u[0] / kGiB + per_ub * b_u[1] / kGiB;
                     const double total = p.weights_gib + kv + p.state_gib + reserve;
                     if (total <= budget_gib) {
