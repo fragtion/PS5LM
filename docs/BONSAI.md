@@ -45,17 +45,19 @@ the console with `-b 1024 -ub 512` unless noted:
 | 128k context, text only (`-b 1024 -ub 512`) | loads clean (`n_ctx_slot = 131072`) |
 | 144k context, text only (`-b 512 -ub 256`) | loads clean (`n_ctx_slot = 147456`) |
 | 160k context, text only (`-b 512 -ub 256`) | loads clean (`n_ctx_slot = 163840`), generation verified at ~19.6 t/s |
+| 176k context, text only (`-b 512 -ub 256`) | loads clean (`n_ctx_slot = 180224`) |
 | 128k + vision | crash mid-load (hard fault, no allocation line) |
 | 144k / 192k text only at `-b 1024 -ub 512` | graceful OOM: `failed to allocate Vulkan0 buffer of size 341843972` |
+| 184k text only at `-b 512 -ub 256` | graceful OOM: `Vulkan_Host buffer of size 114597888` (pinned host staging first, CPU fallback too) |
 
-So the practical ceilings are **160k text-only** (with `-b 512 -ub 256`; 144k
-and 128k come free at narrower-or-wider batches) or **64k with images**; the
-model itself is trained to 262144. The narrow tier is gated to text-only - 96k+vision was
-never booted, so vision plans stay on measured tiers. With the Settings row
-"Vision: Auto/On/Off" (the new `vision` key in `settings.json`) the planner
-picks these configs by itself now; to force an exact one, override the
-planner for one boot with `/data/PS5LM/app-args.txt` - one argument per line,
-e.g. for 128k text-only:
+So the practical ceilings are **176k text-only** (with `-b 512 -ub 256`; 160k
+and 144k come free at the same batch, 128k at the wider one) or **64k with
+images**; the model itself is trained to 262144. The narrow tier is gated to
+text-only - 96k+vision was never booted, so vision plans stay on measured tiers.
+With the Settings row "Vision: Auto/On/Off" (the new `vision` key in
+`settings.json`) the planner picks these configs by itself now; to force an
+exact one, override the planner for one boot with `/data/PS5LM/app-args.txt` -
+one argument per line, e.g. for 128k text-only:
 
 ```
 --log-file
