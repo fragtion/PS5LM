@@ -388,8 +388,8 @@ Plan plan_model(const ModelInfo & m, double budget_gib, uint32_t ctx_cap, const 
     const std::string low_name = lower(m.file_name);
     const bool ternary = low_name.find("pq2_0") != std::string::npos || low_name.find("ptq1_0") != std::string::npos;
     if (ternary && m.vocab_size && m.n_ffn && m.n_embd) {
-        static const uint32_t bu[][2] = { { 2048, 2048 }, { 2048, 1024 }, { 1024, 512 } };
-        static const uint32_t ctxs_tern[] = { 131072, 98304, 65536, 32768, 16384, 8192 };
+        static const uint32_t bu[][2] = { { 2048, 2048 }, { 2048, 1024 }, { 1024, 512 }, { 512, 256 } };
+        static const uint32_t ctxs_tern[] = { 147456, 131072, 98304, 65536, 32768, 16384, 8192 };
         const double vocab    = m.vocab_size;
         const double per_ub   = 2.0 * (4.0 * m.n_ffn + 16.0 * m.n_embd);  // pinned host plus device copy
         for (uint32_t ctx : ctxs_tern) {
@@ -399,6 +399,9 @@ Plan plan_model(const ModelInfo & m, double budget_gib, uint32_t ctx_cap, const 
             for (const auto & b_u : bu) {
                 if (decision && b_u[1] < 2048) {
                     continue;  // a whole prompt in one ubatch, whatever else fits
+                }
+                if (want_img && b_u[1] < 512) {
+                    continue;  // the narrow tier is measured text-only; keep vision on booted tiers
                 }
                 for (const char * t : types) {
                     if (kv_force && std::strcmp(t, kv_force) != 0) {
