@@ -85,13 +85,17 @@ int main(int argc, char ** argv) {
     bv.mmproj = "/data/PS5LM/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf";
     bv.mmproj_bytes = 629246976ull;
     const ps5lm::Plan bvo = ps5lm::plan_model(bv, slim_budget, 131072, nullptr, "auto");
-    assert(bvo.fits && bvo.ctx == 65536 && has_args(bvo, "-b", "1024") && bvo.vision);
+    assert(bvo.fits && bvo.ctx == 98304 && has_args(bvo, "-b", "512") && bvo.vision);
     const ps5lm::Plan bvt = ps5lm::plan_model(bv, slim_budget, 131072, nullptr, "off");
     assert(bvt.fits && bvt.ctx == 131072 && !bvt.vision);
     // Uncapped, the measured narrow tier (-b 512 -ub 256) buys 176k text-only; 184k fails on the
-    // pinned host staging (Vulkan_Host ~109 MiB), so 176k is the top booted tier.
-    const ps5lm::Plan bx = ps5lm::plan_model(bv, slim_budget, 180224, nullptr, "off");
+    // pinned host staging (Vulkan_Host ~109 MiB), so 176k is the top booted tier for the 27B.
+    const ps5lm::Plan bx = ps5lm::plan_model(bv, slim_budget, 262144, nullptr, "off");
     assert(bx.fits && bx.ctx == 180224 && has_args(bx, "-b", "512") && has_args(bx, "-ub", "256"));
+    // The 27B with images tops out at 96k on the narrow tier, booted clean with
+    // grounding verified end-to-end; 128k+vision takes a soft reserve failure.
+    const ps5lm::Plan bv96 = ps5lm::plan_model(bv, slim_budget, 98304, nullptr, "on");
+    assert(bv96.fits && bv96.ctx == 98304 && bv96.vision);
 
     if (argc < 2) {
         std::puts("model_plan_test: ok (synthetic only)");
